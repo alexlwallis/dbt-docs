@@ -1,6 +1,7 @@
 'use strict';
 
 require('./../assets/css/styles.css');
+//require('../../styles')
 
 const $ = require('jquery');
 const angular = require('angular');

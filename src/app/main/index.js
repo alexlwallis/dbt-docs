@@ -65,7 +65,6 @@ angular
     });
 
     $scope.onSearchKeypress = function(e) {
-        console.log(e);
         if (e.key == 'Escape') {
             $scope.clearSearch();
             e.preventDefault();
@@ -119,7 +118,7 @@ angular
         var state_changed = true;
         if (from_state == to_state && prev_node_id == cur_node_id) {
             state_changed = false;
-        } 
+        }
 
         if (state_changed && params.unique_id) {
             var tree = projectService.updateSelected(params.unique_id);

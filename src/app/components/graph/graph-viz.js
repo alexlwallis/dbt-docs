@@ -62,6 +62,7 @@ angular
             });
         });
 
+
         $(".viz-option").on('changed.bs.select', function (e) {
             var option = $(e.target).data("option");
             var selected = $(e.target).val()
@@ -75,40 +76,81 @@ angular
             layout: scope.vizLayout || {name: "circle"}
         }));
 
-        if (!window.graph) {
-            window.graph = cy;
+        // if (!window.graph) {
+        //     console.log('!window.graph')
+        //     window.graph = cy;
+        // }
+
+        // if(scope.graphReady){
+        //   $(window).on("load", function() {
+        //       console.log('scope.graphReady: ', scope.graphReady);
+        //       cy.ready(scope.graphReady);
+        //   })
+        // }
+
+        // cy.on('select', function(e) {
+        //     var node = e.target;
+        //     console.log('cy: ', e.target._private.data.columns)
+        //     console.log("node.id", node.id());
+        //     scope.$apply(function() {
+        //         graph.selectNode(node.id());
+        //         cy.forceRender()
+        //     });
+        // });
+
+        // cy.on('unselect', function(e) {
+        //     var node = e.target;
+
+        //     scope.$apply(function() {
+        //         graph.deselectNodes();
+        //         cy.forceRender()
+        //     });
+        // });
+
+        var xadds = () => {
+            for (let i = 0; i<x.length; i++){
+                console.log(x[i].data.id)
+            }
         }
 
-        if(scope.graphReady){
-          $(window).on("load", function() {
-              cy.ready(scope.graphReady);
-          })
-        }
+        // scope.$watch('vizElements', function(nv, ov).then(res => {
+        //     console.log(nv);
+        // }))
 
-        cy.on('select', function(e) {
-            var node = e.target;
 
-            scope.$apply(function() {
-                graph.selectNode(node.id());
-                cy.forceRender()
-            });
-        });
-
-        cy.on('unselect', function(e) {
-            var node = e.target;
-
-            scope.$apply(function() {
-                graph.deselectNodes();
-                cy.forceRender()
-            });
-        });
-
-        scope.$watch('vizElements', function(nv,ov){
+        scope.$watch('vizElements', function(nv, ov){
             cy.remove(cy.elements());
-            cy.add(nv);
-            rerender(scope, cy);
-            console.log('elements changed, UPDATE');
-        });
+            if (nv.length > 0) {
+                for (let i=0; i<nv.length; i++){
+                    if (nv[i].group == 'nodes'){
+                        scope.vizStyle[5].style['text-wrap'] = 'wrap';
+
+                        let columns = (Object.keys(nv[i].data.columns)).join('\n')
+                        console.log(nv[i].data.label, columns)
+                        nv[i].data.label+="\n"+columns
+                        console.log(nv[i].data)
+                        // for (let j=0; j<columns.length; j++){
+                        //     console.log(columns[j].join('\n'))
+                        //     nv[i].data.label+=columns[j].join('\n')
+                        // }
+                        //console.log(nv[i].data.label+=columns)
+                    }
+                }
+                cy.add(nv)
+                rerender(scope, cy);
+            }
+        })
+
+        // scope.$watch('vizElements', function(nv,ov){
+        //     console.log('scope.watch cy.elements() nv', cy.elements(), nv)
+        //     cy.remove(cy.elements());
+        //     cy.add(nv);
+        //     rerender(scope, cy);
+        //     console.log('elements changed, UPDATE');
+        // });
+
+        //'text-wrap': 'wrap',
+
 
         scope.$watch('vizLayout', function(nv,ov){
             if(nv !== ov){

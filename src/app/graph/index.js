@@ -18,6 +18,7 @@ angular
 
         function getNodeSelector(node) {
             if (node && node.resource_type == 'source') {
+                console.log('node', node);
                 return 'source:' + node.source_name + "." + node.name;
             } else if (node.name)  {
                 return node.name;
