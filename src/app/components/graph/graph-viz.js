@@ -80,21 +80,17 @@ angular
         }));
 
         if (!window.graph) {
-            console.log('!window.graph')
             window.graph = cy;
         }
 
         if(scope.graphReady){
           $(window).on("load", function() {
-              console.log('scope.graphReady: ', scope.graphReady);
               cy.ready(scope.graphReady);
           })
         }
 
         cy.on('select', function(e) {
             var node = e.target;
-            console.log('cy: ', e.target._private.data.columns)
-            console.log("node.id", node.id());
             scope.$apply(function() {
                 graph.selectNode(node.id());
                 cy.forceRender()
@@ -117,7 +113,7 @@ angular
             let nobj2 = {};
             let fkObj = {};
             let edge;
-             cy.remove(cy.elements());
+            cy.remove(cy.elements());
             nv = nv.filter(item => (item.group != 'edges'))
 
             let edgeCreation = (source, target) => {
@@ -181,58 +177,49 @@ angular
                 }
             }
 
+            for (let i=0; i<nv.length; i++){
+                if (nv[i].group == 'nodes'){
+                    let n = nv[i].data.alias;
 
-           
-                for (let i=0; i<nv.length; i++){
-                    if (nv[i].group == 'nodes'){
-                        let n = nv[i].data.alias;
+                    let primaryKey;
+                    let dColumns = Object.keys(nv[i].data.columns);
+                    if (nobj2[n]){
+                        primaryKey = nobj2[n];
+                        dColumns = dColumns.filter(x => x!= primaryKey) 
+                        
 
-                        let primaryKey;
-                        let dColumns = Object.keys(nv[i].data.columns);
-                        if (nobj2[n]){
-                            primaryKey = nobj2[n];
-                            dColumns = dColumns.filter(x => x!= primaryKey) 
-                            
-
-                            scope.vizStyle[5].style['text-wrap'] = 'wrap';
-                        }
-
-                        if (!nv[i].data.label.includes(primaryKey)){
-                            nv[i].data.label+="\n-"+primaryKey+" pKey"
-                        }
-
-
-                        let foreignKey;
-                        if (fkObj[n]){
-                            foreignKey = fkObj[n].col
-                    
-                            dColumns = dColumns.filter(x => x!= foreignKey) 
-                            //console.log("dColumns, foreignKey", dColumns, foreignKey, nv[i]);
-                            scope.vizStyle[5].style['text-wrap'] = 'wrap';
-
-                            if (!nv[i].data.label.includes(foreignKey)){
-                                nv[i].data.label+="\n-"+foreignKey+" fKey"
-                            }
-
-                        }
-
-                        dColumns = dColumns.join('\n-')
-                        if (!nv[i].data.label.includes(dColumns)){
-                            nv[i].data.label+="\n-"+dColumns
-                        }
-                        nv.push(edge);
-
-                        cy.add(nv)
-                        rerender(scope, cy);
+                        scope.vizStyle[5].style['text-wrap'] = 'wrap';
                     }
-                }
+
+                    if (!nv[i].data.label.includes(primaryKey)){
+                        nv[i].data.label+="\n-"+primaryKey+" pKey"
+                    }
+
+
+                    let foreignKey;
+                    if (fkObj[n]){
+                        foreignKey = fkObj[n].col
                 
-                //delete nv[3];
-                // nv[4].data.target = 'model.jaffle_shop.stg_customers';
-                // nv[4].data.unique_id = 'model.jaffle_shop.stg_orders|model.jaffle_shop.stg_customers'
-                // cy.add(nv)
-                //         rerender(scope, cy);
-                console.log("nv new: ",nv);
+                        dColumns = dColumns.filter(x => x!= foreignKey) 
+                        //console.log("dColumns, foreignKey", dColumns, foreignKey, nv[i]);
+                        scope.vizStyle[5].style['text-wrap'] = 'wrap';
+
+                        if (!nv[i].data.label.includes(foreignKey)){
+                            nv[i].data.label+="\n-"+foreignKey+" fKey"
+                        }
+
+                    }
+
+                    dColumns = dColumns.join('\n-')
+                    if (!nv[i].data.label.includes(dColumns)){
+                        nv[i].data.label+="\n-"+dColumns
+                    }
+                    nv.push(edge);
+
+                    cy.add(nv)
+                    rerender(scope, cy);
+                }
+            }
         })
 
         // scope.$watch('vizElements', function(nv,ov){
