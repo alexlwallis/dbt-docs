@@ -38,6 +38,7 @@ angular
 
     return directive;
 
+
     function __rerender(scope, cy) {
         if (scope.vizLayout && scope.vizLayout.name) {
             var layout = cy.layout(scope.vizLayout);
@@ -47,6 +48,8 @@ angular
     }
 
     function linkFn(scope,element,attrs,ctrlFn){
+
+
 
         //var rerender = _.debounce(__rerender, 0);
         var rerender = __rerender;
@@ -76,69 +79,160 @@ angular
             layout: scope.vizLayout || {name: "circle"}
         }));
 
-        // if (!window.graph) {
-        //     console.log('!window.graph')
-        //     window.graph = cy;
-        // }
-
-        // if(scope.graphReady){
-        //   $(window).on("load", function() {
-        //       console.log('scope.graphReady: ', scope.graphReady);
-        //       cy.ready(scope.graphReady);
-        //   })
-        // }
-
-        // cy.on('select', function(e) {
-        //     var node = e.target;
-        //     console.log('cy: ', e.target._private.data.columns)
-        //     console.log("node.id", node.id());
-        //     scope.$apply(function() {
-        //         graph.selectNode(node.id());
-        //         cy.forceRender()
-        //     });
-        // });
-
-        // cy.on('unselect', function(e) {
-        //     var node = e.target;
-
-        //     scope.$apply(function() {
-        //         graph.deselectNodes();
-        //         cy.forceRender()
-        //     });
-        // });
-
-        var xadds = () => {
-            for (let i = 0; i<x.length; i++){
-                console.log(x[i].data.id)
-            }
+        if (!window.graph) {
+            console.log('!window.graph')
+            window.graph = cy;
         }
 
-        // scope.$watch('vizElements', function(nv, ov).then(res => {
-        //     console.log(nv);
-        // }))
+        if(scope.graphReady){
+          $(window).on("load", function() {
+              console.log('scope.graphReady: ', scope.graphReady);
+              cy.ready(scope.graphReady);
+          })
+        }
+
+        cy.on('select', function(e) {
+            var node = e.target;
+            console.log('cy: ', e.target._private.data.columns)
+            console.log("node.id", node.id());
+            scope.$apply(function() {
+                graph.selectNode(node.id());
+                cy.forceRender()
+            });
+        });
+
+        cy.on('unselect', function(e) {
+            var node = e.target;
+
+            scope.$apply(function() {
+                graph.deselectNodes();
+                cy.forceRender()
+            });
+        });
+
 
 
         scope.$watch('vizElements', function(nv, ov){
-            cy.remove(cy.elements());
-            if (nv.length > 0) {
-                for (let i=0; i<nv.length; i++){
-                    if (nv[i].group == 'nodes'){
-                        scope.vizStyle[5].style['text-wrap'] = 'wrap';
+            let arr = [];
+            let nobj2 = {};
+            let fkObj = {};
+            let edge;
+             cy.remove(cy.elements());
+            nv = nv.filter(item => (item.group != 'edges'))
 
-                        let columns = (Object.keys(nv[i].data.columns)).join('\n')
-                        console.log(nv[i].data.label, columns)
-                        nv[i].data.label+="\n"+columns
-                        console.log(nv[i].data)
-                        // for (let j=0; j<columns.length; j++){
-                        //     console.log(columns[j].join('\n'))
-                        //     nv[i].data.label+=columns[j].join('\n')
-                        // }
-                        //console.log(nv[i].data.label+=columns)
+            let edgeCreation = (source, target) => {
+                return (
+                    {
+                        group: 'edges',
+                        data: {
+                            display: 'element',
+                            hidden: 0,
+                            selected: 0,
+                            source,
+                            target,
+                            unique_id: `${source}|${target}`
+                        },
+                        classes: 'horizontal'
+                    }
+                )
+            }
+
+            //used to extracts table from ref('table')
+            let cleanedUp = (str) => {
+                return str.match(/'(.*)'/).pop();
+            }
+
+            if (Object.keys(project.project).length > 0) {
+                let obj = (project.project.nodes);
+                let nobj = {};
+                
+                for (let i in obj){
+                    if (i.slice(0,4) == 'test'){
+                        let colname = obj[i].column_name;
+                        let table = obj[i].refs[0][0];
+                        let test = obj[i].depends_on.macros[0];
+
+                        //Checking for foreign keys:
+                        if (test == "macro.dbt.test_relationships"){
+                            let kwargs = (obj[i].test_metadata.kwargs);
+                            fkObj[cleanedUp(kwargs.model)] = {'col': kwargs['column_name'], 'toTable': cleanedUp(kwargs.to), 'toCol': kwargs.field};
+
+                            //Attaching edge object to our edge var in global scope.
+                            edge = edgeCreation(obj[i].depends_on.nodes[1], obj[i].depends_on.nodes[0]);
+                        }
+
+                        //Assuming tests needed to confirm if primary key are unique and not null
+                        if (test == 'macro.dbt.test_unique' || test == 'macro.dbt.test_not_null') {
+                            if (!nobj.hasOwnProperty(table+'.'+colname)){
+                                nobj[table+'.'+colname] = 1;
+                            } else {
+                                nobj[table+'.'+colname]++;
+                            }
+                        }
                     }
                 }
-                cy.add(nv)
-                rerender(scope, cy);
+                for (let i in nobj){
+                    if (nobj[i] == 2){
+                        arr.push(i);
+                        let table = i.split('.')[0]
+                        let col = i.split('.')[1]
+                        nobj2[table] = col;
+                    }
+                }
             }
+
+
+           
+                for (let i=0; i<nv.length; i++){
+                    if (nv[i].group == 'nodes'){
+                        let n = nv[i].data.alias;
+
+                        let primaryKey;
+                        let dColumns = Object.keys(nv[i].data.columns);
+                        if (nobj2[n]){
+                            primaryKey = nobj2[n];
+                            dColumns = dColumns.filter(x => x!= primaryKey) 
+                            
+
+                            scope.vizStyle[5].style['text-wrap'] = 'wrap';
+                        }
+
+                        if (!nv[i].data.label.includes(primaryKey)){
+                            nv[i].data.label+="\n-"+primaryKey+" pKey"
+                        }
+
+
+                        let foreignKey;
+                        if (fkObj[n]){
+                            foreignKey = fkObj[n].col
+                    
+                            dColumns = dColumns.filter(x => x!= foreignKey) 
+                            //console.log("dColumns, foreignKey", dColumns, foreignKey, nv[i]);
+                            scope.vizStyle[5].style['text-wrap'] = 'wrap';
+
+                            if (!nv[i].data.label.includes(foreignKey)){
+                                nv[i].data.label+="\n-"+foreignKey+" fKey"
+                            }
+
+                        }
+
+                        dColumns = dColumns.join('\n-')
+                        if (!nv[i].data.label.includes(dColumns)){
+                            nv[i].data.label+="\n-"+dColumns
+                        }
+                        nv.push(edge);
+
+                        cy.add(nv)
+                        rerender(scope, cy);
+                    }
+                }
+                
+                //delete nv[3];
+                // nv[4].data.target = 'model.jaffle_shop.stg_customers';
+                // nv[4].data.unique_id = 'model.jaffle_shop.stg_orders|model.jaffle_shop.stg_customers'
+                // cy.add(nv)
+                //         rerender(scope, cy);
+                console.log("nv new: ",nv);
         })
 
         // scope.$watch('vizElements', function(nv,ov){
@@ -174,6 +268,7 @@ angular
                 console.log("Setting styles");
                 cy.setStyle(nv);
             }
+
         }, true);
 
         scope.$on('$destroy', function(){
